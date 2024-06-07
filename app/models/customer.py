@@ -1,14 +1,16 @@
 from app import db
+from sqlalchemy.orm.relationships import RelationshipProperty
 from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime
+import datetime
+from typing import Optional
 
 class Customer(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(nullable=False)
-    registered_at: Mapped[datetime] = mapped_column(nullable=False)
-    postal_code: Mapped[str] = mapped_column(nullable=True)
-    phone: Mapped[str] = mapped_column(nullable=True)
-
+    name: Mapped[str]
+    registered_at: Mapped[datetime.datetime]
+    postal_code: Mapped[str]
+    phone: Mapped[str]
+    
 #  This is a method that returns a dictionary of the object
     def to_dict(self):
         return {

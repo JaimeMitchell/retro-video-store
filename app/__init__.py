@@ -25,25 +25,27 @@ def create_app(test_config=None):
     
     # import models for Alembic Setup
     from app.models.customer import Customer
-    from app.models.video import Video
-    from app.models.rental import Rental
+    # from app.models.video import Video
+    # from app.models.rental import Rental
 
     # Setup DB
     db.init_app(app)
     migrate.init_app(app, db)
 
     #Register Blueprints Here
-    from .routes import rental_bp
-    app.register_blueprint(rental_bp)
 
     from .routes import customer_bp
     app.register_blueprint(customer_bp)
 
-    from .routes import scooter_bp
-    app.register_blueprint(scooter_bp)
+    # from .routes import video_bp
+    # app.register_blueprint(video_bp)
+
+    # from .routes import rental_bp
+    # app.register_blueprint(rental_bp)
 
     CORS(app)
     app.config['CORS_HEADERS'] = 'Content-Type'
+    app.config['FLASK_ENV'] = 'development'
 
 
     return app
