@@ -1,7 +1,8 @@
 from app import db
 # from app.models.rental import Rental
 from app.models.customer import Customer
-# from app.models.video import Video
+from app.models.video import Video
+# from app.models.rental import Rental
 from flask import Blueprint,abort, make_response, request
 from sqlalchemy import not_, and_
 import datetime
@@ -9,7 +10,8 @@ import datetime
 # INSTANTIATE BLUEPRINT FOR ROUTES
 # rental_bp = Blueprint("rental", __name__, url_prefix="/rentals")
 customer_bp = Blueprint("customer", __name__, url_prefix="/customers")
-# video_bp = Blueprint("video", __name__, url_prefix="/videos")
+video_bp = Blueprint("video", __name__, url_prefix="/videos")
+# rental_bp = Blueprint("rental", __name__, url_prefix="/rentals")
 
 # VALIDATE MODEL
 def validate_model(cls, model_id):
@@ -38,7 +40,9 @@ DELETE /customers/<id>'''
 
 @customer_bp.post("", strict_slashes=False)
 def create_customer():
+    # Get the data from the request
     data = request.get_json()
+    # Get the name, postal_code, and phone from the data
     name = data["name"]
     postal_code = data["postal_code"]
     phone = data["phone"]
@@ -82,8 +86,10 @@ def read_all_customers():
 # GET CUSTOMER BY ID
 @customer_bp.get("/<int:id>", strict_slashes=False)
 def get_one_customer(id):
-    query = db.select(Customer).where(Customer.id == id)
-    tast = db.session.scalar(query)
+    # New way
+    # query = db.select(Customer).where(Customer.id == id)
+    # customer = db.session.scalar(query)
+    # Old way
     customer = validate_model(Customer, id)
     return {"customer": customer.to_dict()}, 200
 
@@ -103,28 +109,97 @@ def delete_customer(id):
     db.session.commit()
     return {"message": "Customer deleted successfully"}, 200
 
-# # GET ALL VIDEOS
-# @video_bp.get("", strict_slashes=False)
-# def read_all_rentals():
-#     rentals = Rental.query.all()
-#     rental_response = [rental.to_dict() for rental in rentals]
-#     return rental_response
+'''title	string	The title of the video
+release_date	datetime	Represents the date of the video's release
+total_inventory	integer	The total quantity of this video in the store
+'''
+##CREATE A NEW Video WITH TITLE, RELEASE_DATE, AND TOTAL_INVENTORY
+@video_bp.post("", strict_slashes=False)
+def create_video():
+    # Get the data from the request
+    data = request.get_json()
+    # Get the name, postal_code, and phone from the data
+    title = data["title"]
+    release_date= data["release_date"]
+    total_inventory = data["total_inventory"]
+    
+    # Get the last video id from the database
+    last_video = Video.query.order_by(Video.id.desc()).first()
+    if last_video:
+        id = last_video.id + 1
+    else:
+        id = 1
+    # Get the last video total_inventory from the database based on the title and increment by 1.
+    last_video = Video.query.filter_by(title=title).order_by(Video.total_inventory.desc()).first()
+    if last_video:
+        total_inventory = last_video.total_inventory + 1
+    else:
+        total_inventory = 1
 
 
-# # GET RENTAL BY ID
-# @rental_bp.get("/<int:id>", strict_slashes=False)
-# def get_one_rental(id):
+    # Create a new customer with the generated id and current datetime
+    new_video = Video(id=id, title=title, release_date=release_date, total_inventory=total_inventory)
+    
+    db.session.add(new_video)
+    db.session.commit()
+    return {"message": "Video created successfully", "video_id": new_video.id}, 201
 
-#     rental = validate_model(Rental, id)
-#     return {"rental": rental.to_dict()}, 200
 
-# #GET ALL RENTALS IN ASCENDING ORDER
-# @rental_bp.get("/ascending", strict_slashes=False)
-# def read_all_rentals_ascending():
-#     rentals = Rental.query.order_by(Rental.id.asc()).all()
-#     rental_response = [rental.to_dict() for rental in rentals]
-#     return rental_response
+# GET ALL VIDEOS
+@video_bp.get("", strict_slashes=False)
+def read_all_videos():
+    videos = Video.query.all()
+    video_response = [video.to_dict() for video in videos]
+    return video_response
 
+
+# GET VIDEO BY ID
+@video_bp.get("/<int:id>", strict_slashes=False)
+def get_one_video(id):
+
+    video = validate_model(Video, id)
+    return {"video": video.to_dict()}, 200
+
+#GET ALL VIDEOS IN ASCENDING ORDER
+@video_bp.get("/ascending", strict_slashes=False)
+def read_all_rentals_ascending():
+    videos = Video.query.order_by(Video.id.asc()).all()
+    video_response = [video.to_dict() for video in videos]
+    return video_response
+
+# UPDATE VIDEO'S TITLE, RELEASE_DATE, AND/OR TOTAL_INVENTORY BY ID but do not change position in database
+@video_bp.put("/<int:id>", strict_slashes=False)
+def update_video(id):
+    video = validate_model(Video, id)
+    data = request.get_json()
+    if "title" in data:
+        video.title = data["title"]
+    if "release_date" in data:
+        video.release_date = data["release_date"]
+    if "total_inventory" in data:
+        video.total_inventory = data["total_inventory"]
+    db.session.commit()
+    return {"message": "Video updated successfully"}, 200
+
+
+# DELETE VIDEO BY ID
+@video_bp.delete("/<int:id>", strict_slashes=False)
+def delete_video(id):
+    video = validate_model(Video, id)
+    db.session.delete(video)
+    db.session.commit()
+    return {"message": "Video deleted successfully"}, 200
+
+
+#DELETE VIDEO BY TITLE
+@video_bp.delete("/<string:title>", strict_slashes=False)
+def delete_video_by_title(title):
+    video = Video.query.filter_by(title=title).first()
+    if not video:
+        return {"message": "Video not found"}, 404
+    db.session.delete(video)
+    db.session.commit()
+    return {"message": "Video deleted successfully"}, 200
 
 # #GET ALL RENTAL HISTORY OF A CUSTOMER BY CUSTOMER_ID IN BUT IN ASC ORDER OF RENTAL ID TO CHECK "IS_RETURNED" IN LAST OBJECT IN JSON (DEF CAN BE A HELPER FUNCTION TO CHECK IS_RETURNED=TRUE FOR THIS CUSTOMER))
 # @rental_bp.get("/customer/<int:customer_id>", strict_slashes=False)
