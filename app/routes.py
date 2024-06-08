@@ -58,9 +58,14 @@ def create_customer():
     new_customer = Customer(id=id, name=name, registered_at=datetime.datetime.now(), postal_code=postal_code, phone=phone)
     
     db.session.add(new_customer)
-    db.session.commit()
+    try:
+        db.session.commit()
+        return {"message": "Customer created successfully", "customer_id": new_customer.id}, 201
+    except Exception as e:
+        db.session.rollback()
+        return {"message": "Failed to create customer", "error": str(e)}, 500
     
-    return {"message": "Customer created successfully", "customer_id": new_customer.id}, 201
+    
 
 # UPDATE CUSTOMER'S NAME, POSTAL_CODE, AND/OR PHONE BY ID but do not change position in database
 @customer_bp.put("/<int:id>", strict_slashes=False)
@@ -141,8 +146,12 @@ def create_video():
     new_video = Video(id=id, title=title, release_date=release_date, total_inventory=total_inventory)
     
     db.session.add(new_video)
-    db.session.commit()
-    return {"message": "Video created successfully", "video_id": new_video.id}, 201
+    try:
+        db.session.commit()
+        return {"message": "Video created successfully", "video_id": new_video.id}, 201
+    except Exception as e:
+        db.session.rollback()
+        return {"message": "Failed to create video", "error": str(e)}, 500
 
 
 # GET ALL VIDEOS
