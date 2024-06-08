@@ -36,73 +36,6 @@ POST /customers
 PUT /customers/<id>
 DELETE /customers/<id>'''
 
-# GET ALL CUSTOMERS
-@customer_bp.get("", strict_slashes=False)
-def read_all_customers():
-    customers = Customer.query.all()
-    customer_response = [customer.to_dict() for customer in customers]
-    return customer_response
-
-# GET CUSTOMER BY ID
-@customer_bp.get("/<int:id>", strict_slashes=False)
-def get_one_customer(id):
-    query = db.select(Customer).where(Customer.id == id)
-    tast = db.session.scalar(query)
-    customer = validate_model(Customer, id)
-    return {"customer": customer.to_dict()}, 200
-
-
-# GET ALL CUSTOMERS IN ASCENDING ORDER
-@customer_bp.get("/ascending", strict_slashes=False) 
-def read_all_customers_ascending():
-    customers = Customer.query.order_by(Customer.id.asc()).all()
-    customer_response = [customer.to_dict() for customer in customers]
-    return customer_response
-
-
-# # GET ALL RENTALS
-# @rental_bp.get("", strict_slashes=False)
-# def read_all_rentals():
-#     rentals = Rental.query.all()
-#     rental_response = [rental.to_dict() for rental in rentals]
-#     return rental_response
-
-
-# # GET RENTAL BY ID
-# @rental_bp.get("/<int:id>", strict_slashes=False)
-# def get_one_rental(id):
-
-#     rental = validate_model(Rental, id)
-#     return {"rental": rental.to_dict()}, 200
-
-# #GET ALL RENTALS IN ASCENDING ORDER
-# @rental_bp.get("/ascending", strict_slashes=False)
-# def read_all_rentals_ascending():
-#     rentals = Rental.query.order_by(Rental.id.asc()).all()
-#     rental_response = [rental.to_dict() for rental in rentals]
-#     return rental_response
-
-
-# #GET ALL RENTAL HISTORY OF A CUSTOMER BY CUSTOMER_ID IN BUT IN ASC ORDER OF RENTAL ID TO CHECK "IS_RETURNED" IN LAST OBJECT IN JSON (DEF CAN BE A HELPER FUNCTION TO CHECK IS_RETURNED=TRUE FOR THIS CUSTOMER))
-# @rental_bp.get("/customer/<int:customer_id>", strict_slashes=False)
-# def get_rentals_by_customer_id(customer_id):
-#     customer = validate_model(Customer, customer_id)
-#     if not customer:
-#         return {"message": "Customer not found"}, 404
-#     rentals = Rental.query.filter_by(customer_id=customer_id).order_by(Rental.id.asc()).all()
-#     if not rentals:
-#         # Post a new customer with no history to check this.
-#         return {"message": "No rental history found for this customer"}, 404
-#     rental_response = [rental.to_dict() for rental in rentals]
-#     return rental_response
-
-# POST A NEW CUSTOMER (successfully shows in postman that customer is created but runs the error message "no rental history found for this customer")
-#             'id': self.id,
-#             'name': self.name,
-#             'registered_at': self.registered_at,
-#             'postal_code': self.postal_code,
-#             'phone': self.phone}
-
 @customer_bp.post("", strict_slashes=False)
 def create_customer():
     data = request.get_json()
@@ -139,7 +72,74 @@ def update_customer(id):
     db.session.commit()
     return {"message": "Customer updated successfully"}, 200
 
-# # LIST OF AVAILABLE VideoS
+# GET ALL CUSTOMERS
+@customer_bp.get("", strict_slashes=False)
+def read_all_customers():
+    customers = Customer.query.all()
+    customer_response = [customer.to_dict() for customer in customers]
+    return customer_response
+
+# GET CUSTOMER BY ID
+@customer_bp.get("/<int:id>", strict_slashes=False)
+def get_one_customer(id):
+    query = db.select(Customer).where(Customer.id == id)
+    tast = db.session.scalar(query)
+    customer = validate_model(Customer, id)
+    return {"customer": customer.to_dict()}, 200
+
+
+# GET ALL CUSTOMERS IN ASCENDING ORDER
+@customer_bp.get("/ascending", strict_slashes=False) 
+def read_all_customers_ascending():
+    customers = Customer.query.order_by(Customer.id.asc()).all()
+    customer_response = [customer.to_dict() for customer in customers]
+    return customer_response
+
+# DELETE CUSTOMER BY ID
+@customer_bp.delete("/<int:id>", strict_slashes=False)
+def delete_customer(id):
+    customer = validate_model(Customer, id)
+    db.session.delete(customer)
+    db.session.commit()
+    return {"message": "Customer deleted successfully"}, 200
+
+# # GET ALL VIDEOS
+# @video_bp.get("", strict_slashes=False)
+# def read_all_rentals():
+#     rentals = Rental.query.all()
+#     rental_response = [rental.to_dict() for rental in rentals]
+#     return rental_response
+
+
+# # GET RENTAL BY ID
+# @rental_bp.get("/<int:id>", strict_slashes=False)
+# def get_one_rental(id):
+
+#     rental = validate_model(Rental, id)
+#     return {"rental": rental.to_dict()}, 200
+
+# #GET ALL RENTALS IN ASCENDING ORDER
+# @rental_bp.get("/ascending", strict_slashes=False)
+# def read_all_rentals_ascending():
+#     rentals = Rental.query.order_by(Rental.id.asc()).all()
+#     rental_response = [rental.to_dict() for rental in rentals]
+#     return rental_response
+
+
+# #GET ALL RENTAL HISTORY OF A CUSTOMER BY CUSTOMER_ID IN BUT IN ASC ORDER OF RENTAL ID TO CHECK "IS_RETURNED" IN LAST OBJECT IN JSON (DEF CAN BE A HELPER FUNCTION TO CHECK IS_RETURNED=TRUE FOR THIS CUSTOMER))
+# @rental_bp.get("/customer/<int:customer_id>", strict_slashes=False)
+# def get_rentals_by_customer_id(customer_id):
+#     customer = validate_model(Customer, customer_id)
+#     if not customer:
+#         return {"message": "Customer not found"}, 404
+#     rentals = Rental.query.filter_by(customer_id=customer_id).order_by(Rental.id.asc()).all()
+#     if not rentals:
+#         # Post a new customer with no history to check this.
+#         return {"message": "No rental history found for this customer"}, 404
+#     rental_response = [rental.to_dict() for rental in rentals]
+#     return rental_response
+
+# # LIST OF AVAILABLE Videos
 
 # # My steps:
 
