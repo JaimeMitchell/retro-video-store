@@ -4,11 +4,13 @@ from app.models.customer import Customer
 # from app.models.video import Video
 from flask import Blueprint,abort, make_response, request
 from sqlalchemy import not_, and_
+import datetime
 
 # INSTANTIATE BLUEPRINT FOR ROUTES
 # rental_bp = Blueprint("rental", __name__, url_prefix="/rentals")
 customer_bp = Blueprint("customer", __name__, url_prefix="/customers")
 # video_bp = Blueprint("video", __name__, url_prefix="/videos")
+
 # VALIDATE MODEL
 def validate_model(cls, model_id):
     try:
@@ -104,23 +106,38 @@ def read_all_customers_ascending():
 @customer_bp.post("", strict_slashes=False)
 def create_customer():
     data = request.get_json()
-
-    try:
-        id = data["id"]
-        name = data["name"]
-        registered_at = data["registered_at"]
-        postal_code = data["postal_code"]
-        phone = data["phone"]
-
-    except KeyError:
-        abort(make_response({"message": "Invalid request"}, 400))
-
-    new_customer = Customer(id=id, name=name, registered_at=registered_at, postal_code=postal_code, phone=phone)
+    name = data["name"]
+    postal_code = data["postal_code"]
+    phone = data["phone"]
+    
+    # Get the last customer id from the database
+    last_customer = Customer.query.order_by(Customer.id.desc()).first()
+    if last_customer:
+        id = last_customer.id + 1
+    else:
+        id = 1
+    
+    # Create a new customer with the generated id and current datetime
+    new_customer = Customer(id=id, name=name, registered_at=datetime.datetime.now(), postal_code=postal_code, phone=phone)
+    
     db.session.add(new_customer)
     db.session.commit()
-
+    
     return {"message": "Customer created successfully", "customer_id": new_customer.id}, 201
 
+# UPDATE CUSTOMER'S NAME, POSTAL_CODE, AND/OR PHONE BY ID but do not change position in database
+@customer_bp.put("/<int:id>", strict_slashes=False)
+def update_customer(id):
+    customer = validate_model(Customer, id)
+    data = request.get_json()
+    if "name" in data:
+        customer.name = data["name"]
+    if "postal_code" in data:
+        customer.postal_code = data["postal_code"]
+    if "phone" in data:
+        customer.phone = data["phone"]
+    db.session.commit()
+    return {"message": "Customer updated successfully"}, 200
 
 # # LIST OF AVAILABLE VideoS
 

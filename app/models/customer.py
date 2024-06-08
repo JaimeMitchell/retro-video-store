@@ -7,10 +7,10 @@ from typing import Optional
 class Customer(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str]
-    registered_at: Mapped[datetime.datetime]
+    registered_at: Mapped[str]
     postal_code: Mapped[str]
     phone: Mapped[str]
-    
+
 #  This is a method that returns a dictionary of the object
     def to_dict(self):
         return {
