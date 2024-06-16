@@ -1,8 +1,8 @@
 from app import db
 from sqlalchemy.orm.relationships import RelationshipProperty
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class Video(db.Model):
@@ -10,6 +10,9 @@ class Video(db.Model):
     title: Mapped[str] 
     release_date: Mapped[str] 
     total_inventory: Mapped[int]
+
+    rentals: Mapped[List['Rental']] = relationship('Rental', back_populates='video')
+
 
 #  This is a method that returns a dictionary of the object
     def to_dict(self):

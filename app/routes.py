@@ -5,31 +5,32 @@ from app.models.video import Video
 # from app.models.rental import Rental
 from flask import Blueprint,abort, make_response, request
 from sqlalchemy import not_, and_
-import datetime
+from datetime import datetime, timedelta
 
 # INSTANTIATE BLUEPRINT FOR ROUTES
 # rental_bp = Blueprint("rental", __name__, url_prefix="/rentals")
 customer_bp = Blueprint("customer", __name__, url_prefix="/customers")
 video_bp = Blueprint("video", __name__, url_prefix="/videos")
-# rental_bp = Blueprint("rental", __name__, url_prefix="/rentals")
+rental_bp = Blueprint("rental", __name__, url_prefix="/rentals")
 
 # VALIDATE MODEL
 def validate_model(cls, model_id):
     try:
         model_id = int(model_id)
-    except:
-        abort(make_response(
-            {"message": f"{cls.__name__} {model_id} invalid"}, 400))
+    except ValueError:
+        abort(400, description=f"{cls.__name__} {model_id} invalid")
 
-    # This is like SELECT * FROM table_name(cls param=Task)
-    model = cls.query.get(model_id)
+    # This is like SELECT * FROM table_name WHERE id=model_id
+    query = db.select(cls).where(cls.id == model_id)
+    model = db.session.scalar(query)
 
     if not model:
-        abort(make_response(
-            {"message": f"{cls.__name__} {model_id} can't be found"}, 404))
+        abort(404, description=f"{cls.__name__} {model_id} can't be found")
 
     return model
-
+#------------------------------------------------------------------------#
+# CUSTOMER & VIDEO ROUTES WAVE 1
+#------------------------------------------------------------------------#
 '''Required RESTful endpoints:
 
 GET /customers
@@ -55,7 +56,7 @@ def create_customer():
         id = 1
     
     # Create a new customer with the generated id and current datetime
-    new_customer = Customer(id=id, name=name, registered_at=datetime.datetime.now(), postal_code=postal_code, phone=phone)
+    new_customer = Customer(id=id, name=name, registered_at=datetime.now(), postal_code=postal_code, phone=phone)
     
     db.session.add(new_customer)
     try:
@@ -94,7 +95,7 @@ def get_one_customer(id):
     # New way
     # query = db.select(Customer).where(Customer.id == id)
     # customer = db.session.scalar(query)
-    # Old way
+    # Old way but with New way version of validate_model
     customer = validate_model(Customer, id)
     return {"customer": customer.to_dict()}, 200
 
@@ -210,175 +211,63 @@ def delete_video_by_title(title):
     db.session.commit()
     return {"message": "Video deleted successfully"}, 200
 
-# #GET ALL RENTAL HISTORY OF A CUSTOMER BY CUSTOMER_ID IN BUT IN ASC ORDER OF RENTAL ID TO CHECK "IS_RETURNED" IN LAST OBJECT IN JSON (DEF CAN BE A HELPER FUNCTION TO CHECK IS_RETURNED=TRUE FOR THIS CUSTOMER))
-# @rental_bp.get("/customer/<int:customer_id>", strict_slashes=False)
-# def get_rentals_by_customer_id(customer_id):
-#     customer = validate_model(Customer, customer_id)
-#     if not customer:
-#         return {"message": "Customer not found"}, 404
-#     rentals = Rental.query.filter_by(customer_id=customer_id).order_by(Rental.id.asc()).all()
-#     if not rentals:
-#         # Post a new customer with no history to check this.
-#         return {"message": "No rental history found for this customer"}, 404
-#     rental_response = [rental.to_dict() for rental in rentals]
-#     return rental_response
 
-# # LIST OF AVAILABLE Videos
+#------------------------------------------------------------------------#
+# RENTAL ROUTES WAVE 2
+#------------------------------------------------------------------------#
 
-# # My steps:
-
-# # Look at the data.7 Videos can’t be rented based on the five customers that are renting them and/or charge_percent.
-
-# # First seeded DB and then used SQL logic to get expected result.
-
-# # SQL STATEMENT: "SELECT * FROM Video WHERE ID NOT IN (SELECT Video_id FROM rental WHERE is_returned = FALSE) AND charge_percent > 15;"
-
-# # GET all Videos_id that are in rentals AND NOT is_returned = False
-
-# # Read Doc from SQLalchemyfunction sqlalchemy.sql.expression.not_(clause: _ColumnExpressionArgument[_T]) → ColumnElement[_T]
-# # Return a negation of the given clause, i.e. NOT(clause). 
-
-# # Now search this query for the Video_id in the available Videos data, if it is not there, then return a message "The last Video is not available." if it is there, then return the user message "The last Video is available."
-
-# # I can use the def as a helper function in the other routes to check if the Video is available for rent.
-
-# @video_bp.get("/available/", strict_slashes=False)
-# def read_available_Videos():
-#     rental_subquery = Rental.query.filter(
-#         Rental.Video_id == Video.id,
-#         Rental.is_returned == False
-#     ).exists()
-
-#     available_Videos = Video.query.filter(
-#         not_(rental_subquery),
-#         Video.charge_percent > 15
-#     ).all()
-
-#     available_Videos_data = [Video.to_dict() for Video in available_Videos]
-#     print(len(available_Videos_data))
-#     return available_Videos_data
-
-# # Now search this query for the Video_id in the available Videos data, if it is not there, then return a message "The last Video is not available." 
-
-# #if it is there, then return the user message "The last Video is available."
-
-# @video_bp.get("/check-Video/<int:Video_id>", strict_slashes=False)
-# def check_Video_availability(Video_id):
-#     # Validate if the Video exists
-#     Video = Video.query.get(Video_id)
-#     if not Video:
-#         return {"message": "Video not found"}, 404
-
-#     # Check if the Video is currently being rented
-#     active_rental = Rental.query.filter(
-#         Rental.Video_id == Video_id,
-#         Rental.is_returned == False
-#     ).scalar()
-
-#     if active_rental:
-#         return {"message": "The Video is being rented"}, 400
-
-#     # Check if the Video's charge percent is greater than 15
-#     if Video.charge_percent <= 15:
-#         return {"message": "The Video has to be charged"}, 400
-
-#     return {"message": "The Video is available! :)"},{"Video": Video.to_dict()}, 200
-
-
-# # RENT A Video:
-
-# # STEPS:
-# # 1. Looks at Data and sees that 5 customers are renting, I can use this to check query results.
-
-# # 2. Helper function: query all Rental<customer_id> in ascending order, if the last record (is_returned=True) go to Video check, else return message "You can only have one active rental."
-
-# # 3. Give feedback message "You can only have one active rental."
-
-# # 4. Helper function: query all Rental<Video_id> in ascending order, if the last record (is_returned=True) POST a new rental 
-
-# # 5. Give feedback message "The last Video is not available."
-
-# # 6. (REMEMBER id needs to be created in ascending order for other route logic to work! same with return route!)
-
-# # 7. I found that I ran into problems with .scalar, so I used .first() instead because it returns the first result of the query or None if there are no results which didn't give me any errors when i created a new customer with no history! i'm bummed though that it didn't seem to work in helper functions but im running out of time and will refactor later!
-
-# # 8. I also learned that i dont need to increment the id in rentals. This could cause duplicates if simultaneous requests are made and may have also given me some trouble within postman that set me back an hour.
-
-# @rental_bp.post("/rent/customer/<int:customer_id>/Video/<int:Video_id>", strict_slashes=False)
-# def rent_Video(customer_id, Video_id):
-#     # Validate if the customer exists
-#     customer = Customer.query.get(customer_id)
-#     if not customer:
-#         return {"message": "Customer not found"}, 404
-#     # Validate if the Video exists
-#     Video = Video.query.get(Video_id)
-#     if not Video:
-#         return {"message": "Video not found"}, 404
+'''POST /rentals/check-out
+customer_id	integer	ID of the customer attempting to check out this video
+video_id	integer	ID of the video to be checked out
+'''
+@rental_bp.route('/check-out', methods=['POST'])
+def check_out():
+    data = request.get_json()
     
-#     # Check if the Video is currently being rented
-#     active_rental = Rental.query.filter(
-#         Rental.Video_id == Video_id,
-#         Rental.is_returned == False
-#     ).first()
+    customer_id = data.get('customer_id')
+    video_id = data.get('video_id')
 
-#     if active_rental:
-#         return {"message": "The Video is being rented"}, 400
+    customer = Customer.query.get(customer_id)
+    video = Video.query.get(video_id)
 
-#     # Check if the Video's charge percent is greater than 15
-#     if Video.charge_percent <= 15:
-#         return {"message": "The Video has to be charged"}, 400
+    if not customer:
+        return {'error': 'Customer not found'}, 404
 
-#     # Check if the customer already has an active rental
-#     active_rental_customer = Rental.query.filter(
-#         Rental.customer_id == customer_id,
-#         Rental.is_returned == False
-#     ).first()
+    if not video:
+        return {'error': 'Video not found'}, 404
 
-#     if active_rental_customer:
-#         return {"message": "You can only have one active rental"}, 400
+    # Calculate available inventory
+    checked_out_count = Rental.query.filter_by(video_title=video.title, checked_in=False).count()
+    available_inventory = video.total_inventory - checked_out_count
 
-#     # Create a new rental
-#     new_rental = Rental(customer_id=customer_id, Video_id=Video_id, is_returned=False)
-#     db.session.add(new_rental)
-#     db.session.commit()
-#     return {"message": "Rental created successfully"}, 200
+    if available_inventory <= 0:
+        return {'error': 'No available inventory'}, 400
 
-#     return {"message": "Rental created successfully"}, 200
-
-
-# # RETURN A Video
-# #Steps:
-# # 1.  I have most of the logic from above I can reuse. If I had time I'd refactor everything into a function, and then from there refactor into a class. Please forgive me! I'm still wet behind the ears so can't be DRY! ;P
-# # 2. A customer should only be able to return a Video if they are currently renting a Video.
-# # 3. A customer should only be able to return a Video if the Video is not already returned.
-# # 4. Since I'm almost outta time, I'm goint to streamline this and only enter a customer id because I imagine the customer will only be shown their own Video to return. I can just check if is_returned is false, then I can post from there and change is_returned to true. Finito.
-
-# @rental_bp.post("/return/customer/<int:customer_id>", strict_slashes=False)
-# def return_Video(customer_id):
-#     # Validate if the customer exists
-#     customer = Customer.query.get(customer_id)
-#     if not customer:
-#         return {"message": "Customer not found"}, 404
+    # Create rental
+    due_date = datetime.now() + timedelta(days=7)
+    rental = Rental(
+        customer_id=customer_id,
+        video_id=video_id,
+        video_title=video.title,
+        due_date=due_date.strftime('%Y-%m-%d')
+    )
     
-#     # Check if the customer already has an active rental
-#     active_rental_customer = Rental.query.filter(
-#         Rental.customer_id == customer_id,
-#         Rental.is_returned == False
-#     ).first()
+    db.session.add(rental)
+    db.session.commit()
 
-#     if active_rental_customer:
+    return {
+        'customer_id': customer_id,
+        'video_id': video_id,
+        'due_date': due_date.strftime('%Y-%m-%d'),
+        'videos_checked_out_count': Rental.query.filter_by(customer_id=customer_id, checked_in=False).count(),
+        'available_inventory': available_inventory - 1
+    }, 200
 
-#         # Update is_returned to True
-#         active_rental_customer.is_returned = True
 
-#         # Create a new rental
-#         Video_id = active_rental_customer.Video_id
+''' POST /rentals/check-in
+Request Body Param	Type	Details
+customer_id	integer	ID of the customer attempting to check out this video
+video_id	integer	ID of the video to be checked out
 
-#         new_rental = Rental(customer_id=active_rental_customer.customer_id, Video_id=Video_id, is_returned=True)
-#         db.session.add(new_rental)
-#         db.session.commit()
-
-#         return {"message": "Rental returned successfully"}, 200
-#     else:
-#         return {"message": "You can only return a Video if you are currently renting a Video"}, 400
+'''
 

@@ -1,8 +1,9 @@
 from app import db
 from sqlalchemy.orm.relationships import RelationshipProperty
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import datetime
 from typing import Optional
+from typing import List
 
 class Customer(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -10,6 +11,9 @@ class Customer(db.Model):
     registered_at: Mapped[str]
     postal_code: Mapped[str]
     phone: Mapped[str]
+
+    rentals: Mapped[List['Rental']] = relationship('Rental', back_populates='customer')
+
 
 #  This is a method that returns a dictionary of the object
     def to_dict(self):
